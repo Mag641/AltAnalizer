@@ -1,22 +1,16 @@
-import requests
-
-from utils import log_error
-from constants import *
 import re
 
+import requests
 
-def get_commits_datetimes(history):
-    dates = list()
-    for obj in history:
-        dates.append(obj['commit']['author']['date'])
-    return dates
+from constants import *
+from utils import log_error
 
 
-def get_commits_history(org: str, repo: str):  # instead of these two use one 'repo_url'?
-    repo_url = API_MAIN_URL + COMMITS_END.format(org, repo)
+def get_history(org: str, repo: str, target: str):  # instead of these two use one 'repo_url'?
+    url = API_MAIN_URL + REPO_END.format(org, repo) + f'/{target}'
     events = requests.get(
-        repo_url,
-        auth=(USERNAME, TOKEN)
+        url,
+        auth=AUTH_PARAMS
     )
     if events.status_code == 200:
         events_json = events.json()
@@ -28,9 +22,9 @@ def get_commits_history(org: str, repo: str):  # instead of these two use one 'r
         for page in range(2, last_page + 1):
             print(f'Page: {page}')
             events = requests.get(
-                repo_url,
+                url,
                 params={'page': page},
-                auth=(USERNAME, TOKEN)
+                auth=AUTH_PARAMS
             )
             if events.status_code == 200:
                 events_json.extend(events.json())
@@ -43,9 +37,8 @@ def get_commits_history(org: str, repo: str):  # instead of these two use one 'r
     return events_json
 
 
-def get_releases_history(repo: str):
-    pass
-
-
-def get_releases_datetimes(releases_history):
-    pass
+def get_commits_datetimes(history):
+    dates = list()
+    for obj in history:
+        dates.append(obj['commit']['author']['date'])
+    return dates
