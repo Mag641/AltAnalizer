@@ -1,14 +1,22 @@
-import re
-
 import requests
 
 from utils import log_error
+from constants import *
+import re
 
 
-def get_commits_gistory(main_url: str, endpoint: str, format_params: tuple, auth_params: tuple):
+def get_commits_datetimes(history):
+    dates = list()
+    for obj in history:
+        dates.append(obj['commit']['author']['date'])
+    return dates
+
+
+def get_commits_history(org: str, repo: str):  # instead of these two use one 'repo_url'?
+    repo_url = API_MAIN_URL + COMMITS_END.format(org, repo)
     events = requests.get(
-        main_url + endpoint.format(*format_params),
-        auth=auth_params
+        repo_url,
+        auth=(USERNAME, TOKEN)
     )
     if events.status_code == 200:
         events_json = events.json()
@@ -20,8 +28,9 @@ def get_commits_gistory(main_url: str, endpoint: str, format_params: tuple, auth
         for page in range(2, last_page + 1):
             print(f'Page: {page}')
             events = requests.get(
-                main_url + endpoint.format(*format_params), params={'page': page},
-                auth=auth_params
+                repo_url,
+                params={'page': page},
+                auth=(USERNAME, TOKEN)
             )
             if events.status_code == 200:
                 events_json.extend(events.json())
@@ -34,8 +43,9 @@ def get_commits_gistory(main_url: str, endpoint: str, format_params: tuple, auth
     return events_json
 
 
-def get_commits_dates(history):
-    dates = list()
-    for obj in history:
-        dates.append(obj['commit']['author']['date'])
-    return dates
+def get_releases_history(repo: str):
+    pass
+
+
+def get_releases_datetimes(releases_history):
+    pass
