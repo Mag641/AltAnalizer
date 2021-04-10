@@ -27,9 +27,10 @@ def get_commits_dates(history):
     return dates
 
 
-def main():
+def get_commits_gistory(main_url: str, endpoint: str, format_params: tuple, auth_params: tuple):
     events = requests.get(
-        MAIN_URL + COMMITS_END.format('klaytn', 'klaytn'),
+        main_url + endpoint.format(*format_params),
+        auth=auth_params
     )
     if events.status_code == 200:
         events_json = events.json()
@@ -41,8 +42,8 @@ def main():
         for page in range(2, last_page + 1):
             print(f'Page: {page}')
             events = requests.get(
-                MAIN_URL + COMMITS_END.format(), params={'page': page},
-                auth=(USERNAME, TOKEN)
+                main_url + endpoint.format(*format_params), params={'page': page},
+                auth=auth_params
             )
             if events.status_code == 200:
                 events_json.extend(events.json())
@@ -52,8 +53,13 @@ def main():
     else:
         log_error(events.json())
         exit(1)
+    return events_json
 
-    commits_dates = get_commits_dates(events.json())
+
+def main():
+
+    commits_history = get_commits_gistory(MAIN_URL, COMMITS_END, ('klaytn', 'klaytn'), (USERNAME, TOKEN))
+    commits_dates = get_commits_dates(commits_history)
     with open('klaytn_commits.txt', 'w') as file:
         file.truncate()
         file.write('\n'.join(commits_dates))
