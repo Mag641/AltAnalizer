@@ -1,7 +1,11 @@
 import json
 import re
 
+import pandas as pd
 import requests
+
+import plotly.express as px
+import plotly.graph_objs as go
 
 USERNAME = 'Mag641'
 TOKEN = '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'
@@ -57,15 +61,20 @@ def get_commits_gistory(main_url: str, endpoint: str, format_params: tuple, auth
 
 
 def main():
-
-    commits_history = get_commits_gistory(MAIN_URL, COMMITS_END, ('klaytn', 'klaytn'), (USERNAME, TOKEN))
-    commits_dates = get_commits_dates(commits_history)
-    with open('klaytn_commits.txt', 'w') as file:
-        file.truncate()
-        file.write('\n'.join(commits_dates))
+    '''
+        commits_history = get_commits_gistory(MAIN_URL, COMMITS_END, ('klaytn', 'klaytn'), (USERNAME, TOKEN))
+        commits_dates = get_commits_dates(commits_history)
+        with open('klaytn_commits.txt', 'w') as file:
+            file.truncate()
+            file.write('\n'.join(commits_dates))
+        '''
 
     with open('klaytn_commits.txt', 'r') as file:
         commits_dates = file.readlines()
+
+    series = pd.to_datetime(commits_dates, format='%Y-%m-%dT%H:%M:%S')
+    fig = go.Figure(data=go.Scatter(x=series, y=[1] * len(series), mode='markers'))
+    fig.show()
 
 
 if __name__ == '__main__':
