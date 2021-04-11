@@ -24,9 +24,11 @@ def get_all(org: str, repo: str):
 
 
 def get_history(org: str, repo: str, target: str):  # instead of these two use one 'repo_url'?
+    print(f'Getting {target}...')
     url = API_MAIN_URL + REPO_END.format(org, repo) + f'/{target}'
     events = requests.get(
         url,
+        params={'state': 'all'} if target=='issues' else None,
         auth=AUTH_PARAMS
     )
     if events.status_code == 200:
@@ -54,16 +56,38 @@ def get_history(org: str, repo: str, target: str):  # instead of these two use o
     return events_json
 
 
-def get_commits_datetimes(history):
+def get_commits_datetimes(commits_history):
+    print('Formatting commits...')
     dates = list()
-    for obj in history:
+
+    commits_count = len(commits_history)
+    pbar = tqdm(commits_history)
+    for i, obj in enumerate(pbar):
+        pbar.set_description(f'Commit {i} of {commits_count}')
         dates.append(obj['commit']['author']['date'])
     return dates
 
 
 def get_releases_datetimes(releases_history):
-    pass
+    print('Formatting releases...')
+    release_datetimes = list()
+
+    releases_count = len(len(releases_history))
+    pbar = tqdm(releases_history)
+    for i, release in enumerate(pbar):
+        pbar.set_description(f'Release {i} if {releases_count}')
+        release_datetimes.append(release['published_at'])
+    return release_datetimes
 
 
 def get_issues_datetimes(issues_history):
-    pass
+    print('Formatting issues...')
+    issues_formatted = list()
+
+    issues_count = len(issues_history)
+    pbar = tqdm(issues_history)
+    for i, issue in enumerate(pbar):
+        pbar.set_description(f'Issue {i+1} of {issues_count}')
+        issues_formatted.append((issue['created_at'], issue['closed_at'] if issue['closed_at'] != 'null' else ''))
+    return issues_formatted
+
