@@ -2,20 +2,18 @@ import repo_parsing
 import json
 import os
 import utils
+import pandas as pd
 
 
 def main():
+    if not os.path.exists('repos_info'):
+        os.mkdir('repos_info')
     org = 'klaytn'
     repo = 'klaytn'
 
-    issues_history = repo_parsing.get_history(org, repo, 'commits')
-    if not os.path.exists('repos_info'):
-        os.mkdir('repos_info')
-    if not os.path.exists(f'repos_info/{org}_{repo}'):
-        os.mkdir(f'repos_info/{org}_{repo}')
-
-    issues_formatted = repo_parsing.get_issues_datetimes(issues_history)
-    utils.write_issues_to_file(org, repo, issues_formatted)
+    klaytn_history = repo_parsing.get_all(org, repo)
+    df = pd.DataFrame()
+    df.groupby()
 
     '''
     releases_datetimes = repo_parsing.get_releases_datetimes(releases_history)

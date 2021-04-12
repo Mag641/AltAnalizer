@@ -5,14 +5,13 @@ import requests
 from constants import *
 from utils import log_error
 from tqdm import tqdm
-from pprint import pprint
+import os
 
 
 def get_all(org: str, repo: str):
-    print('Getting commits...')
     commits_history = get_history(org, repo, 'commits')
     commits_datetimes = get_commits_datetimes(commits_history)
-    print('Getting releases...')
+
     releases_history = get_history(org, repo, 'releases')
     releases_datetimes = get_releases_datetimes(releases_history)
 
@@ -24,6 +23,8 @@ def get_all(org: str, repo: str):
 
 
 def get_history(org: str, repo: str, target: str):  # instead of these two use one 'repo_url'?
+    if not os.path.exists(f'repos_info/{org}_{repo}'):
+        os.mkdir(f'repos_info/{org}_{repo}')
     print(f'Getting {target}...')
     url = API_MAIN_URL + REPO_END.format(org, repo) + f'/{target}'
     events = requests.get(
