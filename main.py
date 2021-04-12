@@ -1,8 +1,8 @@
-import repo_parsing
-import json
 import os
-import utils
+
 import pandas as pd
+
+import repo_parsing
 
 
 def main():
@@ -11,11 +11,10 @@ def main():
     org = 'klaytn'
     repo = 'klaytn'
 
-    klaytn_history = repo_parsing.get_all(org, repo)
+    '''            
     df = pd.DataFrame()
     df.groupby()
 
-    '''
     releases_datetimes = repo_parsing.get_releases_datetimes(releases_history)
     with open(f'{org}_{repo}_releases.txt'.format(org=org, repo=repo), 'w') as file:
         file.truncate()
