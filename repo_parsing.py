@@ -6,8 +6,40 @@ import requests
 from tqdm import tqdm
 
 from constants import *
-from utils import log_error
+from utils import log_error, check_dir
 import pandas as pd
+
+
+def _get_issues(org, repo):
+    url = API_MAIN_URL + '/search/issues'
+    print('Getting issues...')
+    events = requests.get(
+        url,
+        params={'q': f'repo:{org}/{repo} type:issue'},
+        auth=AUTH_PARAMS
+    )
+    if events.status_code == 200:
+        events_json = events.json()['items']
+        if 'Link' in events.headers:
+            p = re.compile('page=([0-9]+)>; rel="last"')
+            last_page = int(p.search(events.headers['Link']).group(1))
+            pbar = tqdm(range(2, last_page + 1))
+            for page in pbar:
+                pbar.set_description(f'Page {page} of {last_page}')
+                events = requests.get(
+                    url,
+                    params={'q': f'repo:{org}/{repo} type:issue', 'page': page},
+                    auth=AUTH_PARAMS
+                )
+                if events.status_code == 200:
+                    events_json.extend(events.json()['items'])
+                else:
+                    log_error(events.json())
+                    exit(1)
+    else:
+        log_error(events.json())
+        exit(1)
+    return events_json
 
 
 def get_all(org: str, repo: str):
@@ -30,38 +62,39 @@ def get_all(org: str, repo: str):
 
 
 def get_history(org: str, repo: str, target: str):  # instead of these two use one 'repo_url'?
-    if not os.path.exists(f'repos_info/{org}_{repo}'):
-        os.mkdir(f'repos_info/{org}_{repo}')
-    print(f'Getting {target}...')
-    url = API_MAIN_URL + REPO_END.format(org, repo) + f'/{target}'
-    events = requests.get(
-        url,
-        params={'state': 'all'} if target == 'issues' else None,
-        auth=AUTH_PARAMS
-    )
-    if events.status_code == 200:
-        events_json = events.json()
-
-        if 'Link' in events.headers:
-            p = re.compile('page=([0-9]+)>; rel="last"')
-            last_page = int(p.search(events.headers['Link']).group(1))
-            pbar = tqdm(range(2, last_page + 1))
-            for page in pbar:
-                pbar.set_description(f'Page {page} of {last_page}')
-                events = requests.get(
-                    url,
-                    params={'page': page},
-                    auth=AUTH_PARAMS
-                )
-                if events.status_code == 200:
-                    events_json.extend(events.json())
-                else:
-                    log_error(events.json())
-                    exit(1)
+    if target == 'issues':
+        return _get_issues(org, repo)
     else:
-        log_error(events.json())
-        exit(1)
-    return events_json
+        check_dir(org, repo)
+        print(f'Getting {target}...')
+        url = API_MAIN_URL + REPO_END.format(org, repo) + f'/{target}'
+        events = requests.get(
+            url,
+            auth=AUTH_PARAMS
+        )
+        if events.status_code == 200:
+            events_json = events.json()
+
+            if 'Link' in events.headers:
+                p = re.compile('page=([0-9]+)>; rel="last"')
+                last_page = int(p.search(events.headers['Link']).group(1))
+                pbar = tqdm(range(2, last_page + 1))
+                for page in pbar:
+                    pbar.set_description(f'Page {page} of {last_page}')
+                    events = requests.get(
+                        url,
+                        params={'page': page},
+                        auth=AUTH_PARAMS
+                    )
+                    if events.status_code == 200:
+                        events_json.extend(events.json())
+                    else:
+                        log_error(events.json())
+                        exit(1)
+        else:
+            log_error(events.json())
+            exit(1)
+        return events_json
 
 
 def get_commits_datetimes(commits_history):
@@ -103,6 +136,9 @@ def get_issues_datetimes(issues_history):
 
 
 def to_dataframe(history: Dict[AnyStr, List]):
+    df = pd.DataFrame(history)
+    return df
+    '''
     start_datetimes = list()
     end_datetimes = list()
     for series in history:
@@ -113,3 +149,4 @@ def to_dataframe(history: Dict[AnyStr, List]):
     latest_datetime = max(end_datetimes)
 
     timeline = pd.date_range(earlier_datetime, latest_datetime, freq='H')
+    '''
