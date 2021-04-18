@@ -84,19 +84,13 @@ def groupby(
         observed: bool = False,
         dropna: bool = True,
 ):
-    print('Transforming issues...')
-    issues_count = len(data['issues'])
-
     timeline_start_datetime = pd.to_datetime(data['issues'][0], format=DATETIME_FORMAT)
     timeline_end_datetime = pd.to_datetime(data['issues'][-1], format=DATETIME_FORMAT)
 
     timeline = pd.date_range(timeline_start_datetime, timeline_end_datetime, freq=by)
     issues_grouped = {item: (0, 0) for item in timeline}
 
-    pbar = tqdm(data['issues'])
-    for i, issue in enumerate(pbar):
-        pbar.set_description(f'Issue {i} of {issues_count}')
-
+    for issue in tqdm(data['issues'], desc='Transforming issues...'):
         issue_datetimes_str = issue.split(' ')
         open_datetime = pd.to_datetime(issue_datetimes_str[0], format=DATETIME_FORMAT)
 

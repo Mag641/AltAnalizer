@@ -23,9 +23,7 @@ def _get_issues(org, repo):
         if 'Link' in events.headers:
             p = re.compile('page=([0-9]+)>; rel="last"')
             last_page = int(p.search(events.headers['Link']).group(1))
-            pbar = tqdm(range(2, last_page + 1))
-            for page in pbar:
-                pbar.set_description(f'Page {page} of {last_page}')
+            for page in tqdm(range(2, last_page + 1), desc='Parsing pages'):
                 events = requests.get(
                     url,
                     params={'q': f'repo:{org}/{repo} type:issue', 'page': page},
@@ -78,9 +76,7 @@ def get_history(org: str, repo: str, target: str):  # instead of these two use o
             if 'Link' in events.headers:
                 p = re.compile('page=([0-9]+)>; rel="last"')
                 last_page = int(p.search(events.headers['Link']).group(1))
-                pbar = tqdm(range(2, last_page + 1))
-                for page in pbar:
-                    pbar.set_description(f'Page {page} of {last_page}')
+                for page in tqdm(range(2, last_page + 1), desc='Parsing pages'):
                     events = requests.get(
                         url,
                         params={'page': page},
@@ -98,38 +94,23 @@ def get_history(org: str, repo: str, target: str):  # instead of these two use o
 
 
 def get_commits_datetimes(commits_history):
-    print('Formatting commits...')
     dates = list()
-
-    commits_count = len(commits_history)
-    pbar = tqdm(commits_history)
-    for i, obj in enumerate(pbar):
-        pbar.set_description(f'Commit {i+1} of {commits_count}')
+    for obj in tqdm(commits_history, desc='Formatting commits...'):
         dates.append(obj['commit']['author']['date'])
     return dates
 
 
 def get_releases_datetimes(releases_history):
-    print('Formatting releases...')
     release_datetimes = list()
-
-    releases_count = len(releases_history)
-    pbar = tqdm(releases_history)
-    for i, release in enumerate(pbar):
-        pbar.set_description(f'Release {i+1} if {releases_count}')
+    for release in tqdm(releases_history, desc='Formatting releases...'):
         release_datetimes.append(release['published_at'])
     return release_datetimes
 
 
 def get_issues_datetimes(issues_history):
-    print('Formatting issues...')
     issues_opens = list()
     issues_closes = list()
-
-    issues_count = len(issues_history)
-    pbar = tqdm(issues_history)
-    for i, issue in enumerate(pbar):
-        pbar.set_description(f'Issue {i + 1} of {issues_count}')
+    for issue in tqdm(issues_history, desc='Formatting issues...'):
         issues_opens.append(issue['created_at'])
         issues_closes.append(issue['closed_at'] if issue['closed_at'] is not None else '')
     return issues_opens, issues_closes
