@@ -30,6 +30,10 @@ def is_repo_or_owner_url(url: str):
 
 def read_all_history_from_file(org: str, repo: str):
     # TODO: Refactor and rename all things like 'commits_HISTORY', 'commits_DATETIMES', 'DATETIMES' and so on
+
+    if not os.path.exists(f'repos_info/{org}_{repo}'):
+        return None
+
     whole_history = dict()
     with open(f'repos_info/{org}_{repo}/{org}_{repo}_commits.txt', 'r') as file:
         commits_history_str = file.readlines()
