@@ -5,6 +5,7 @@ import pandas as pd
 import repo_parsing
 import utils
 import plotly.graph_objects as go
+import plotly.express as px
 from pprint import pprint
 
 
@@ -14,25 +15,25 @@ def main():
     org = 'klaytn'
     repo = 'klaytn'
 
-    '''
-    found_issues = repo_parsing.search_issues(org, repo)
-    pprint(found_issues)
-    issues_raw_history = repo_parsing.get_history(org, repo, 'issues')
-    for issue in issues_raw_history:
-        if 'wallet cannot sync' in issue['body']:
-            print('a')
-    pprint(issues_raw_history)
-    
+    '''    
     whole_klaytn_history = repo_parsing.get_all(org, repo)
     utils.write_all_history_to_files(org, repo, whole_klaytn_history)
     '''
 
+    issues_history = repo_parsing._get_issues(org, repo)
+    issues_opens, issues_closes = repo_parsing.get_issues_datetimes(issues_history)
+    with open(f'repos_info/{org}_{repo}/{org}_{repo}_issues_opens.txt', 'w') as file:
+        file.truncate()
+        file.write('\n'.join(issues_opens))
+    with open(f'repos_info/{org}_{repo}/{org}_{repo}_issues_closes.txt', 'w') as file:
+        file.truncate()
+        file.write('\n'.join(issues_closes))
+
     whole_klaytn_history = utils.read_all_history_from_file(org, repo)
     df = pd.DataFrame(whole_klaytn_history)
-
-    new_df = df['commits'].groupby(pd.Grouper(freq='M'))
-    new_df.aggregate(func=sum)
-    fig = go.Figure(data=go.Line(new_df))
+    df = df.groupby(pd.Grouper(freq='M'))
+    df = df.aggregate(func=sum)
+    fig = px.line(df)
     fig.show()
 
     fig = go.Figure()

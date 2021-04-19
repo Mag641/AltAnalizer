@@ -131,7 +131,9 @@ def get_issues_datetimes(issues_history):
     for i, issue in enumerate(pbar):
         pbar.set_description(f'Issue {i + 1} of {issues_count}')
         issues_opens.append(issue['created_at'])
-        issues_closes.append(issue['closed_at'] if issue['closed_at'] is not None else '')
+        if issue['closed_at'] is not None:
+            issues_closes.append(issue['closed_at'])
+
     return issues_opens, issues_closes
 
 

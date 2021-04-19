@@ -30,27 +30,32 @@ def is_repo_or_owner_url(url: str):
 
 def read_all_history_from_file(org: str, repo: str):
     # TODO: Refactor and rename all things like 'commits_HISTORY', 'commits_DATETIMES', 'DATETIMES' and so on
-    whole_history = dict()
+    series_dict = dict()
     with open(f'repos_info/{org}_{repo}/{org}_{repo}_commits.txt', 'r') as file:
         commits_history_str = file.readlines()
-    commits_history = pd.Series([pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in commits_history_str])
-    whole_history['commits'] = commits_history
+    index = [pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in commits_history_str]
+    commits_history = pd.Series([1]*len(index), index=index, name='commits')
+    series_dict['commits'] = commits_history
 
     with open(f'repos_info/{org}_{repo}/{org}_{repo}_issues_opens.txt', 'r') as file:
         opens_history_str = file.readlines()
-    opens_history = pd.Series([pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in opens_history_str])
-    whole_history['issues_opens'] = opens_history
+    index = [pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in opens_history_str]
+    opens_history = pd.Series([1] * len(index), index=index, name='issues_opens')
+    series_dict['issues_opens'] = opens_history
 
     with open(f'repos_info/{org}_{repo}/{org}_{repo}_issues_closes.txt', 'r') as file:
         closes_history_str = file.readlines()
-    closes_history = pd.Series([pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in closes_history_str])
-    whole_history['issues_closes'] = closes_history
+    index = [pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in closes_history_str]
+    closes_history = pd.Series([1] * len(index), index=index, name='issues_closes')
+    series_dict['issues_closes'] = closes_history
 
     with open(f'repos_info/{org}_{repo}/{org}_{repo}_releases.txt', 'r') as file:
         releases_history_str = file.readlines()
-    releases_history = pd.Series([pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in releases_history_str])
-    whole_history['releases'] = releases_history
+    index = [pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in releases_history_str]
+    releases_history = pd.Series([1] * len(index), index=index, name='releases')
+    series_dict['releases'] = releases_history
 
+    whole_history = pd.DataFrame(series_dict)
     return whole_history
 
 
