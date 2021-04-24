@@ -13,3 +13,5 @@ DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
 eth_repo = 'https://github.com/ethereum/go-ethereum'
 klaytn_reop = 'https://github.com/klaytn/klaytn'
 
+TARGETS = ('commits', 'issues_opens', 'issues_closes', 'releases')
+

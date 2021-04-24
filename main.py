@@ -5,20 +5,20 @@ import pandas as pd
 import utils
 import plots
 import repo_parsing
+import json
 
 
 def main():
     if not os.path.exists('repos_info'):
         os.mkdir('repos_info')
-    org = 'ethereum'
-    repo = 'go-ethereum'
+    org = 'klaytn'
+    repo = 'klaytn'
 
-    whole_history = utils.read_all_history_from_file(org, repo)
-    if not whole_history:
+    df = utils.read_all_history_from_files(org, repo)
+    if df is None:
         history = repo_parsing.get_all(org, repo)
         utils.write_all_history_to_files(org, repo, history)
-        whole_history = utils.read_all_history_from_file(org, repo)
-    df = pd.DataFrame(whole_history)
+        df = utils.read_all_history_from_files(org, repo)
 
     plots.plot([
         *plots.oc_issues(df),
@@ -28,12 +28,6 @@ def main():
 
     plots.plot(plots.commits_count_grouped(df, 'M'))
     # plots.plot([plots.issues_c_dt(df)])
-
-    '''
-    fig.update_traces(mode='markers', marker_line_width=2, marker_size=10)
-    fig.show()
-    print(df)
-    '''
 
 
 if __name__ == '__main__':

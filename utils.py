@@ -1,14 +1,16 @@
 import json
+import os
+import time
 from typing import List, Tuple
 
-from pandas.api.extensions import no_default
 import pandas as pd
+from pandas.api.extensions import no_default
 from tqdm import tqdm
-from constants import DATETIME_FORMAT
-import os
+
+from constants import DATETIME_FORMAT, TARGETS
 
 
-def check_dir(org: str, repo: str):
+def check_dir_exist(org: str, repo: str):
     if not os.path.exists(f'repos_info/{org}_{repo}'):
         os.mkdir(f'repos_info/{org}_{repo}')
 
@@ -28,33 +30,42 @@ def is_repo_or_owner_url(url: str):
         return None
 
 
-def read_all_history_from_file(org: str, repo: str):
-    # TODO: Refactor and rename all things like 'commits_HISTORY', 'commits_DATETIMES', 'DATETIMES' and so on
+def series_from_file(org, repo, target: str):
+    from repo_parsing import get_history, get_commits_datetimes, get_issues_datetimes, get_releases_datetimes
+    try:
+        with open(f'repos_info/{org}_{repo}/{org}_{repo}_{target}.txt', 'r') as file:
+            history_str = file.readlines()
+    except FileNotFoundError:
+        if target == 'issues_opens' or target == 'issues_closes':
+            issues_history = get_history(org, repo, 'issues')
+            issues_opens, issues_closes = get_issues_datetimes(issues_history)
+            data = {
+                'issues_opens': issues_opens,
+                'issues_closes': issues_closes,
+            }
+        else:
+            history = get_history(org, repo, target)
+            get_datetimes_func = locals()[f'get_{target}_datetimes']
+            history_datetimes = get_datetimes_func(history)
+            data = {target: history_datetimes}
+        write_all_history_to_files(org, repo, data)
+        with open(f'repos_info/{org}_{repo}/{org}_{repo}_{target}.txt', 'r') as file:
+            history_str = file.readlines()
 
+    index = [pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in history_str]
+    history = pd.Series([1] * len(index), index=index, name=target)
+    history.sort_index(ascending=False, inplace=True)
+    return history
+
+
+def read_all_history_from_files(org: str, repo: str):
+    # TODO: Refactor and rename all things like 'commits_HISTORY', 'commits_DATETIMES', 'DATETIMES' and so on
     if not os.path.exists(f'repos_info/{org}_{repo}'):
         return None
-
-    whole_history = dict()
-    with open(f'repos_info/{org}_{repo}/{org}_{repo}_commits.txt', 'r') as file:
-        commits_history_str = file.readlines()
-    commits_history = pd.Series([pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in commits_history_str])
-    whole_history['commits'] = commits_history
-
-    with open(f'repos_info/{org}_{repo}/{org}_{repo}_issues_opens.txt', 'r') as file:
-        opens_history_str = file.readlines()
-    opens_history = pd.Series([pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in opens_history_str])
-    whole_history['issues_opens'] = opens_history
-
-    with open(f'repos_info/{org}_{repo}/{org}_{repo}_issues_closes.txt', 'r') as file:
-        closes_history_str = file.readlines()
-    closes_history = pd.Series([pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in closes_history_str])
-    whole_history['issues_closes'] = closes_history
-
-    with open(f'repos_info/{org}_{repo}/{org}_{repo}_releases.txt', 'r') as file:
-        releases_history_str = file.readlines()
-    releases_history = pd.Series([pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in releases_history_str])
-    whole_history['releases'] = releases_history
-
+    series_dict = {}
+    for target in TARGETS:
+        series_dict[target] = series_from_file(org, repo, target)
+    whole_history = pd.DataFrame(series_dict)
     return whole_history
 
 
@@ -116,3 +127,20 @@ def groupby(
                     break
 
 
+def process_http_error(e):
+    if e.response.status_code == 502:
+        print('Bad Gateway(502)!')
+        time.sleep(1)
+    else:
+        print(e.response.json())
+        for _ in tqdm(range(30), desc='Waiting...'):
+            time.sleep(1)
+
+
+def _check_for_duplicates(commits_with_info):
+    for i, dt in enumerate(tqdm(commits_with_info['dts'])):
+        for j, another_dt in enumerate(commits_with_info['dts'][i + 1:]):
+            if dt == another_dt:
+                print(f'{i} = {i + 1 + j} {dt}')
+                for key in commits_with_info['info'][i].keys():
+                    print(f'{key}:\t{commits_with_info["info"][i][key]}\t{commits_with_info["info"][i + 1 + j][key]}')
