@@ -52,7 +52,12 @@ def series_from_file(org, repo, target: str):
         with open(f'repos_info/{org}_{repo}/{org}_{repo}_{target}.txt', 'r') as file:
             history_str = file.readlines()
 
-    index = [pd.to_datetime(dt.rstrip('\n'), format=DATETIME_FORMAT) for dt in history_str]
+    index = [
+        pd.to_datetime(
+            dt.rstrip('\n'), format=DATETIME_FORMAT
+        )
+        for dt in history_str
+    ]
     history = pd.Series([1] * len(index), index=index, name=target)
     history.sort_index(ascending=False, inplace=True)
     return history
@@ -62,11 +67,22 @@ def read_all_history_from_files(org: str, repo: str):
     # TODO: Refactor and rename all things like 'commits_HISTORY', 'commits_DATETIMES', 'DATETIMES' and so on
     if not os.path.exists(f'repos_info/{org}_{repo}'):
         return None
-    series_dict = {}
+    com_rel_series_dict = {}  # dict, containing series of commits and releases
+    issues_series_dict = {}
     for target in TARGETS:
-        series_dict[target] = series_from_file(org, repo, target)
-    whole_history = pd.DataFrame(series_dict)
-    return whole_history
+        s = series_from_file(org, repo, target)
+        if 'issues' in target:
+            s = pd.Series(s.index, name=s.name)
+            issues_series_dict[target] = s
+        else:
+            com_rel_series_dict[target] = s
+
+    com_rel_df = pd.DataFrame(com_rel_series_dict)
+    com_rel_df = com_rel_df.astype(float)
+
+    issues_df = pd.DataFrame(issues_series_dict)
+
+    return com_rel_df, issues_df
 
 
 def write_all_history_to_files(org, repo, whole_history):

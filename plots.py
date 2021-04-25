@@ -13,20 +13,20 @@ def plot(traces):
     fig.show()
 
 
-def o_issues(df: pd.DataFrame):
+def o_issues(issues_df: pd.DataFrame):
     """
     Returns trace with open datetimes of the issues, that are not closed yet
-    :param df:
+    :param issues_df:
     :return:
     """
-    opened_issues = pd.Series([
+    opened_issues_datetimes = pd.Series([
         open_dt
-        for i, open_dt in enumerate(df['issues_opens'])
-        if pd.isna(df['issues_closes'][i])
+        for i, open_dt in enumerate(issues_df['issues_opens'])
+        if pd.isna(issues_df['issues_closes'][i])
     ])
     return go.Scatter(
-        x=opened_issues,
-        y=[2.1] * len(opened_issues),
+        x=opened_issues_datetimes,
+        y=[2.1] * len(opened_issues_datetimes),
         name='opened issues',
         mode='markers',
         marker_color='rgb(245, 66, 66)',
@@ -34,20 +34,20 @@ def o_issues(df: pd.DataFrame):
     )
 
 
-def c_issues(df: pd.DataFrame):
+def c_issues(issues_df: pd.DataFrame):
     """
     Returns trace with open datetimes of the issues, that are alreayd closed
-    :param df:
+    :param issues_df:
     :return:
     """
-    closed_issues = pd.Series([
+    closed_issues_datetimes = pd.Series([
         open_dt
-        for open_dt in df['issues_closes']
-        if not pd.isna(open_dt)
+        for i, open_dt in enumerate(issues_df['issues_opens'])
+        if not pd.isna(issues_df['issues_closes'][i])
     ])
     return go.Scatter(
-        x=closed_issues,
-        y=[2] * len(closed_issues),
+        x=closed_issues_datetimes,
+        y=[2] * len(closed_issues_datetimes),
         name='closed issues',
         mode='markers',
         marker_color='rgb(66, 245, 66)',
@@ -55,21 +55,26 @@ def c_issues(df: pd.DataFrame):
     )
 
 
-def oc_issues(df: pd.DataFrame):
+def oc_issues(issues_df: pd.DataFrame):
     """
     Short variant for o_issues, c_issues
-    :param df:
+    :param issues_df:
     :return:
     """
-    opened_trace = o_issues(df)
-    closed_trace = c_issues(df)
+    opened_trace = o_issues(issues_df)
+    closed_trace = c_issues(issues_df)
     return opened_trace, closed_trace
 
 
-def commits(df: pd.DataFrame):
+def commits(com_rel_df: pd.DataFrame):
+    commits_datetimes = pd.Series([
+        dt for i, dt
+        in enumerate(com_rel_df['commits'].index)
+        if not pd.isna(com_rel_df['commits'][i])
+    ])
     return go.Scatter(
-        x=df['commits'],
-        y=[1.] * len(df['commits']),
+        x=commits_datetimes,
+        y=[1.] * len(com_rel_df['commits']),
         name='commits',
         mode='markers',
         marker_color='rgb(0, 190, 255)',
@@ -77,14 +82,14 @@ def commits(df: pd.DataFrame):
     )
 
 
-def issues_o_dt(df: pd.DataFrame):
+def issues_o_dt(issues_df: pd.DataFrame):
     """
     Returns open datetimes for all issues
-    :param df:
+    :param issues_df:
     :return:
     """
     return go.Scatter(
-        x=df['issues_opens'], y=[2.] * len(df['issues_opens']),
+        x=issues_df['issues_opens'], y=[2.] * len(issues_df['issues_opens']),
         name='issues opens',
         mode='markers',
         marker_color='rgb(255, 0, 0)',
@@ -92,15 +97,15 @@ def issues_o_dt(df: pd.DataFrame):
     )
 
 
-def issues_c_dt(df: pd.DataFrame):
+def issues_c_dt(issues_df: pd.DataFrame):
     """
     Returns close datetimes for all issues
-    :param df:
+    :param issues_df:
     :return:
     """
     return go.Scatter(
-        x=df['issues_closes'],
-        y=[3] * len(df['issues_closes']),
+        x=issues_df['issues_closes'],
+        y=[3] * len(issues_df['issues_closes']),
         name='issues closes',
         mode='markers',
         marker_color='rgb(0, 255, 0)',
@@ -108,10 +113,15 @@ def issues_c_dt(df: pd.DataFrame):
     )
 
 
-def releases(df: pd.DataFrame):
+def releases(com_rel_df: pd.DataFrame):
+    releases_datetimes = pd.Series([
+        dt for i, dt
+        in enumerate(com_rel_df['releases'].index)
+        if not pd.isna(com_rel_df['releases'][i])
+    ])
     return go.Scatter(
-        x=df['releases'],
-        y=[3] * len(df['releases']),
+        x=releases_datetimes,
+        y=[3] * len(com_rel_df['releases']),
         name='releases',
         mode='markers',
         marker_color='rgb(225, 0, 255)',
@@ -120,8 +130,8 @@ def releases(df: pd.DataFrame):
     )
 
 
-def commits_count_grouped(df: pd.DataFrame, by: str):
-    commits_count = df['commits'].groupby(pd.Grouper(freq=by))
+def commits_count_grouped(com_rel_df: pd.DataFrame, by: str):
+    commits_count = com_rel_df['commits'].groupby(pd.Grouper(freq=by))
     commits_count.aggregate(func=sum)
     fig = go.Figure(data=go.Line(commits_count))
     fig.show()
