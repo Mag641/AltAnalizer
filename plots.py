@@ -131,7 +131,25 @@ def releases(com_rel_df: pd.DataFrame):
 
 
 def commits_count_grouped(com_rel_df: pd.DataFrame, by: str):
-    commits_count = com_rel_df['commits'].groupby(pd.Grouper(freq=by))
-    commits_count.aggregate(func=sum)
-    fig = go.Figure(data=go.Line(commits_count))
-    fig.show()
+    commits_count = com_rel_df['commits'].groupby(
+        pd.Grouper(freq=by)
+    ).sum()
+    return go.Scatter(
+        x=commits_count.index,
+        y=commits_count
+    )
+
+
+def releases_count_grouped(com_rel_df: pd.DataFrame, by: str):
+    releases_count = com_rel_df['releases'].groupby(
+        pd.Grouper(freq=by)
+    ).sum()
+    releases_count.aggregate(func=sum)
+    return go.Scatter(
+        x=releases_count.index,
+        y=releases_count
+    )
+
+
+def oc_issues_corelation_grouped():
+    pass

@@ -20,13 +20,18 @@ def main():
         utils.write_all_history_to_files(org, repo, history)
         com_rel_df, issues_df = utils.read_all_history_from_files(org, repo)
 
+    '''
     plots.plot([
         *plots.oc_issues(issues_df),
         plots.releases(com_rel_df),
         plots.commits(com_rel_df)]
     )
+    '''
 
-    # plots.plot(plots.commits_count_grouped(df, 'M'))
+    plots.plot([
+        plots.commits_count_grouped(com_rel_df, 'M'),
+        plots.releases_count_grouped(com_rel_df, '6M')
+    ])
     # plots.plot([plots.issues_c_dt(df)])
 
 
