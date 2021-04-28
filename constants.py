@@ -15,3 +15,31 @@ klaytn_reop = 'https://github.com/klaytn/klaytn'
 
 TARGETS = ('commits', 'issues_opens', 'issues_closes', 'releases')
 
+
+def _generate_freqs():
+    frequencies = []
+    letters = ['D', 'W', 'M', 'Q']
+    numbers_ranges = [range(1, 7), range(1, 4), range(1, 12), range(1, 4)]
+    for numbers_range, letter in zip(numbers_ranges, letters):
+        for number in numbers_range:
+            if number == 1:
+                frequencies.append(letter)
+            else:
+                frequencies.append(str(number) + letter)
+    return frequencies
+
+
+FREQUENCIES = _generate_freqs()
+FREQUENCIES_HUMAN = {
+    'D': 'days',
+    'W': 'weeks',
+    'SM': 'semi-months',
+    'M': 'months',
+    'Q': 'quarters',
+}
+
+START_FREQUENCIES_INDICES = {
+    'c': FREQUENCIES.index('2W'),
+    'i': FREQUENCIES.index('W'),
+    'r': FREQUENCIES.index('3M')
+}

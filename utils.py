@@ -7,7 +7,8 @@ import pandas as pd
 from pandas.api.extensions import no_default
 from tqdm import tqdm
 
-from constants import DATETIME_FORMAT, TARGETS
+from constants import DATETIME_FORMAT, TARGETS, FREQUENCIES, FREQUENCIES_HUMAN
+import re
 
 
 def check_dir_exist(org: str, repo: str):
@@ -66,7 +67,9 @@ def series_from_file(org, repo, target: str):
 def read_all_history_from_files(org: str, repo: str):
     # TODO: Refactor and rename all things like 'commits_HISTORY', 'commits_DATETIMES', 'DATETIMES' and so on
     if not os.path.exists(f'repos_info/{org}_{repo}'):
-        return None
+        from repo_parsing import get_all
+        history = get_all(org, repo)
+        write_all_history_to_files(org, repo, history)
     com_rel_series_dict = {}  # dict, containing series of commits and releases
     issues_series_dict = {}
     for target in TARGETS:
@@ -149,7 +152,7 @@ def process_http_error(e):
         time.sleep(1)
     else:
         print(e.response.json())
-        for _ in tqdm(range(30), desc='Waiting...'):
+        for _ in tqdm(range(120), desc='Waiting...'):
             time.sleep(1)
 
 
@@ -160,3 +163,21 @@ def _check_for_duplicates(commits_with_info):
                 print(f'{i} = {i + 1 + j} {dt}')
                 for key in commits_with_info['info'][i].keys():
                     print(f'{key}:\t{commits_with_info["info"][i][key]}\t{commits_with_info["info"][i + 1 + j][key]}')
+
+
+def freq_to_human_readable(by: str):
+    try:
+        freq_number = re.search(r'[0-9]*', by).group(0)
+        if freq_number == '1':
+            freq_number = ''
+    except AttributeError:
+        freq_number = ''
+
+    try:
+        freq_period = re.search(r'[a-zA-Z]', by).group(0)
+        freq_period = FREQUENCIES_HUMAN[freq_period]
+    except AttributeError:
+        freq_period = ''
+
+    freq_human = ' '.join([freq_number, freq_period])
+    return freq_human

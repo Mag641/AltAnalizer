@@ -1,15 +1,77 @@
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from tqdm import tqdm
+
+from constants import FREQUENCIES, START_FREQUENCIES_INDICES
+from utils import freq_to_human_readable
 
 
 def plot(traces):
-    all_y = []
-    for trace in traces:
-        all_y.extend(trace.y)
-    y_upper = max(all_y)
+    if type(traces) == list:
+        all_y = []
+        for trace in traces:
+            all_y.extend(trace.y)
+        y_upper = max(all_y)
+    else:
+        y_upper = max(traces.y)
 
-    fig = go.Figure(layout_yaxis_range=[0, y_upper+10])
+    fig = go.Figure(layout_yaxis_range=[0, y_upper + 10])
     fig.add_traces(traces)
+    fig.show()
+
+
+def plot_with_slider(traces):
+    if 'r' in traces.keys():
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+    else:
+        '''
+        y_upper = max([
+            max(trace.y)
+            for trace in traces
+        ])
+        fig = go.Figure(layout_yaxis_range=[0, y_upper + 10])
+        '''
+        fig = go.Figure()
+
+    for target_letter, traces_pack in traces.items():
+        traces_pack[
+            START_FREQUENCIES_INDICES[target_letter]
+        ].visible = True
+        if target_letter == 'r':
+            for trace in traces_pack:
+                fig.add_trace(trace, secondary_y='True')
+        else:
+            fig.add_traces(traces_pack)
+
+    traces_packs_steps = []
+    for target_letter, traces_pack in traces.items():
+        steps = [
+            dict(
+                method="update",
+                args=[
+                    {"visible": [False] * len(traces_pack)},
+                    {"title": "Slider switched to step: " + freq_to_human_readable(freq)}
+                ],
+            )  # layout attribute
+            for trace, freq in zip(traces_pack, FREQUENCIES)
+        ]
+        for i, step in enumerate(steps):
+            step['args'][0]['visible'][i] = True
+        traces_packs_steps.append(steps)
+
+    sliders = [
+        dict(
+            active=START_FREQUENCIES_INDICES[target_letter],
+            currentvalue={"prefix": "Frequency: "},
+            pad={'b': 10*(i+1)},
+            steps=traces_packs_steps[i]
+        ) for i, target_letter in enumerate(traces.keys()) #  HERE I FINISHED
+    ]
+
+    fig.update_layout(
+        sliders=sliders
+    )
     fig.show()
 
 
@@ -25,9 +87,9 @@ def o_issues(issues_df: pd.DataFrame):
         if pd.isna(issues_df['issues_closes'][i])
     ])
     return go.Scatter(
+        name='opened issues',
         x=opened_issues_datetimes,
         y=[2.1] * len(opened_issues_datetimes),
-        name='opened issues',
         mode='markers',
         marker_color='rgb(245, 66, 66)',
         marker_line_width=2,
@@ -46,9 +108,9 @@ def c_issues(issues_df: pd.DataFrame):
         if not pd.isna(issues_df['issues_closes'][i])
     ])
     return go.Scatter(
+        name='closed issues',
         x=closed_issues_datetimes,
         y=[2] * len(closed_issues_datetimes),
-        name='closed issues',
         mode='markers',
         marker_color='rgb(66, 245, 66)',
         marker_line_width=2,
@@ -66,20 +128,35 @@ def oc_issues(issues_df: pd.DataFrame):
     return opened_trace, closed_trace
 
 
-def commits(com_rel_df: pd.DataFrame):
-    commits_datetimes = pd.Series([
-        dt for i, dt
-        in enumerate(com_rel_df['commits'].index)
-        if not pd.isna(com_rel_df['commits'][i])
-    ])
-    return go.Scatter(
-        x=commits_datetimes,
-        y=[1.] * len(com_rel_df['commits']),
-        name='commits',
-        mode='markers',
-        marker_color='rgb(0, 190, 255)',
-        marker_line_width=2,
-    )
+def commits(com_rel_df: pd.DataFrame, by=None, with_sliders=False):
+    # TODO: What is better, own return for each case or one return in the end.
+    if by is None:
+        # Without grouping
+        if with_sliders:
+            traces = []
+            for freq in tqdm(FREQUENCIES, desc='Preparing plots...'):
+                traces.append(
+                    commits_grouped_by(com_rel_df, freq, False)
+                )
+            return traces
+        else:
+            # Just all commits
+            commits_datetimes = pd.Series([
+                dt for i, dt
+                in enumerate(com_rel_df['commits'].index)
+                if not pd.isna(com_rel_df['commits'][i])
+            ])
+            return go.Scatter(
+                name='commits',
+                x=commits_datetimes,
+                y=[1.] * len(com_rel_df['commits']),
+                mode='markers',
+                marker_color='rgb(0, 190, 255)',
+                marker_line_width=2,
+            )
+    else:
+        # With grouping
+        return commits_grouped_by(com_rel_df, by)
 
 
 def issues_o_dt(issues_df: pd.DataFrame):
@@ -89,8 +166,9 @@ def issues_o_dt(issues_df: pd.DataFrame):
     :return:
     """
     return go.Scatter(
-        x=issues_df['issues_opens'], y=[2.] * len(issues_df['issues_opens']),
         name='issues opens',
+        x=issues_df['issues_opens'],
+        y=[2.] * len(issues_df['issues_opens']),
         mode='markers',
         marker_color='rgb(255, 0, 0)',
         marker_line_width=2,
@@ -104,9 +182,9 @@ def issues_c_dt(issues_df: pd.DataFrame):
     :return:
     """
     return go.Scatter(
+        name='issues closes',
         x=issues_df['issues_closes'],
         y=[3] * len(issues_df['issues_closes']),
-        name='issues closes',
         mode='markers',
         marker_color='rgb(0, 255, 0)',
         marker_line_width=2,
@@ -120,9 +198,9 @@ def releases(com_rel_df: pd.DataFrame):
         if not pd.isna(com_rel_df['releases'][i])
     ])
     return go.Scatter(
+        name='releases',
         x=releases_datetimes,
         y=[3] * len(com_rel_df['releases']),
-        name='releases',
         mode='markers',
         marker_color='rgb(225, 0, 255)',
         marker_line_width=2,
@@ -130,24 +208,36 @@ def releases(com_rel_df: pd.DataFrame):
     )
 
 
-def commits_count_grouped(com_rel_df: pd.DataFrame, by: str):
-    commits_count = com_rel_df['commits'].groupby(
+def commits_grouped_by(com_rel_df: pd.DataFrame, by: str):
+    name = 'commits'
+    commits_count = com_rel_df[name].groupby(
         pd.Grouper(freq=by)
     ).sum()
+
+    freq_human = freq_to_human_readable(by)
+    if freq_human:
+        name += f' per {freq_human}'
     return go.Scatter(
+        name=name,
+        visible=visible,
         x=commits_count.index,
-        y=commits_count
+        y=commits_count,
     )
 
 
 def releases_count_grouped(com_rel_df: pd.DataFrame, by: str):
+    name = 'releases'
     releases_count = com_rel_df['releases'].groupby(
         pd.Grouper(freq=by)
     ).sum()
-    releases_count.aggregate(func=sum)
+
+    freq_human = freq_to_human_readable(by)
+    if freq_human:
+        name += f' per {freq_human}'
     return go.Scatter(
+        name=name,
         x=releases_count.index,
-        y=releases_count
+        y=releases_count,
     )
 
 
