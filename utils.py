@@ -174,10 +174,10 @@ def freq_to_human_readable(by: str):
         freq_number = ''
 
     try:
-        freq_period = re.search(r'[a-zA-Z]', by).group(0)
-        freq_period = FREQUENCIES_HUMAN[freq_period]
+        freq_interval = re.search(r'[a-zA-Z]', by).group(0)
+        freq_interval = FREQUENCIES_HUMAN[freq_interval]
     except AttributeError:
-        freq_period = ''
+        freq_interval = ''
 
-    freq_human = ' '.join([freq_number, freq_period])
+    freq_human = freq_number + ' ' + freq_interval
     return freq_human

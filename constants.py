@@ -39,7 +39,8 @@ FREQUENCIES_HUMAN = {
 }
 
 START_FREQUENCIES_INDICES = {
-    'c': FREQUENCIES.index('2W'),
-    'i': FREQUENCIES.index('W'),
-    'r': FREQUENCIES.index('3M')
+    'commits': FREQUENCIES.index('2W'),
+    'issues_opens': FREQUENCIES.index('W'),
+    'issues_closes': FREQUENCIES.index('W'),
+    'releases': FREQUENCIES.index('3M')
 }
