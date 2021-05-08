@@ -1,11 +1,8 @@
 import os
 
-import pandas as pd
-
-import utils
 import plots
 import repo_parsing
-import json
+import utils
 
 
 def main():
@@ -32,10 +29,13 @@ def main():
         plots.commits(com_rel_df, 'M')
     )
     '''
-    plots.plot_with_slider({
-        'commits': plots.commits(com_rel_df, for_sliders=True),
-        'releases': plots.releases(com_rel_df, for_sliders=True),
-    })
+    plots.plot_with_slider(
+        {'commits': plots.commits(com_rel_df, for_sliders=True)},
+    )
+
+    def change(obj, arg):
+        print('CHANGE\nCHANGE\nCHANGE\n')
+        print(obj, arg)
 
 
 if __name__ == '__main__':

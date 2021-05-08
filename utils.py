@@ -181,3 +181,11 @@ def freq_to_human_readable(by: str):
 
     freq_human = freq_number + ' ' + freq_interval
     return freq_human
+
+
+def human_readable_to_freq(human_freq: str):
+    items = human_freq.split(' ')
+    if len(items) == 1:
+        return items[0][0].upper()
+    else:
+        return items[0] + items[1][0].upper()

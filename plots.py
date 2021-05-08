@@ -2,8 +2,9 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from tqdm import tqdm
-from constants import FREQUENCIES, START_FREQUENCIES_INDICES
-from utils import freq_to_human_readable
+from constants import FREQUENCIES, START_FREQUENCIES, START_FREQUENCIES_INDICES
+from utils import freq_to_human_readable, human_readable_to_freq
+import ipywidgets as widgets
 
 
 def plot(traces):
@@ -20,7 +21,7 @@ def plot(traces):
     fig.show()
 
 
-def plot_with_slider(traces):
+def plot_with_slider(traces, show=True):
     if 'releases' in traces.keys():
         fig = make_subplots(specs=[[{"secondary_y": True}]])
     else:
@@ -43,6 +44,29 @@ def plot_with_slider(traces):
         else:
             fig.add_traces(traces_pack)
 
+    firstSlider = widgets.SelectionSlider(
+        options=[
+            freq_to_human_readable(freq)
+            for freq in FREQUENCIES
+        ],
+        value=freq_to_human_readable(START_FREQUENCIES[list(traces.keys())[0]]),
+        description='Group by:',
+        disabled=False,
+        continuous_update=False,
+        orientation='horizontal',
+        readout=True
+    )
+
+    def change_trace(fig, slider_value):
+        trace_index = human_readable_to_freq('value')
+        with fig.batch_update():
+            for trace in fig.data:
+                trace.visible = False
+            fig.data[trace_index].visible = True
+
+    firstSlider.observe(change_trace, 'value')
+
+    '''
     traces_packs_steps = []
     for traces_pack in traces.values():
         steps = [
@@ -59,7 +83,7 @@ def plot_with_slider(traces):
         for i, step in enumerate(steps):
             step['args'][0]['visible'][i] = True
         traces_packs_steps.append(steps)
-
+    
     sliders = [
         dict(
             active=START_FREQUENCIES_INDICES[target],
@@ -71,8 +95,12 @@ def plot_with_slider(traces):
     fig.update_layout(
         sliders=sliders
     )
+    '''
 
-    fig.show(config={'scrollZoom': True})
+    if show:
+        fig.show(config={'scrollZoom': True})
+    else:
+        return fig
 
 
 def o_issues(issues_df: pd.DataFrame):

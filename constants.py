@@ -38,9 +38,14 @@ FREQUENCIES_HUMAN = {
     'Q': 'quarters',
 }
 
+START_FREQUENCIES = {
+    'commits': '2W',
+    'issues_opens': 'W',
+    'issues_closes': 'W',
+    'releases': '3M'
+}
+
 START_FREQUENCIES_INDICES = {
-    'commits': FREQUENCIES.index('2W'),
-    'issues_opens': FREQUENCIES.index('W'),
-    'issues_closes': FREQUENCIES.index('W'),
-    'releases': FREQUENCIES.index('3M')
+    key: FREQUENCIES.index(value)
+    for key, value in START_FREQUENCIES.items()
 }
