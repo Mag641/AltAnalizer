@@ -32,7 +32,7 @@ def plot_with_slider(traces, show=True):
         ])
         fig = go.Figure(layout_yaxis_range=[0, y_upper + 10])
         '''
-        fig = go.Figure()
+        fig = go.FigureWidget()
 
     for target, traces_pack in traces.items():
         traces_pack[
@@ -49,23 +49,13 @@ def plot_with_slider(traces, show=True):
             freq_to_human_readable(freq)
             for freq in FREQUENCIES
         ],
-        value=freq_to_human_readable(START_FREQUENCIES[list(traces.keys())[0]]),
+        value='2 weeks',
         description='Group by:',
         disabled=False,
-        continuous_update=False,
+        continuous_update=True,
         orientation='horizontal',
         readout=True
     )
-
-    def change_trace(fig, slider_value):
-        trace_index = human_readable_to_freq('value')
-        with fig.batch_update():
-            for trace in fig.data:
-                trace.visible = False
-            fig.data[trace_index].visible = True
-
-    firstSlider.observe(change_trace, 'value')
-
     '''
     traces_packs_steps = []
     for traces_pack in traces.values():
@@ -83,7 +73,7 @@ def plot_with_slider(traces, show=True):
         for i, step in enumerate(steps):
             step['args'][0]['visible'][i] = True
         traces_packs_steps.append(steps)
-    
+
     sliders = [
         dict(
             active=START_FREQUENCIES_INDICES[target],
@@ -100,7 +90,7 @@ def plot_with_slider(traces, show=True):
     if show:
         fig.show(config={'scrollZoom': True})
     else:
-        return fig
+        return fig, firstSlider
 
 
 def o_issues(issues_df: pd.DataFrame):
