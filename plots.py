@@ -1,14 +1,54 @@
+from functools import partial
+
+import ipywidgets as widgets
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from tqdm import tqdm
-from constants import FREQUENCIES, START_FREQUENCIES, START_FREQUENCIES_INDICES
+
+from constants import FREQUENCIES, DEFAULT_FREQUENCIES, DEFAULT_FREQUENCIES_INDICES
 from utils import freq_to_human_readable, human_readable_to_freq
-import ipywidgets as widgets
+
+
+def _switch_trace(fig, slider_num, sliders_count, slider_value):
+    freq = human_readable_to_freq(slider_value['new'])
+    traces_pack_start_index = int((len(fig.data) / sliders_count) * slider_num)
+    trace_index = traces_pack_start_index + FREQUENCIES.index(freq)
+    next_traces_pack_index = traces_pack_start_index + len(FREQUENCIES)
+    with fig.batch_update():
+        for i, trace in enumerate(fig.data[traces_pack_start_index: next_traces_pack_index]):
+            j = i + traces_pack_start_index
+            if j == trace_index:
+                trace.visible = True
+            else:
+                trace.visible = False
+
+
+def _create_grouping_slider(value, target):
+    return widgets.SelectionSlider(
+        options=[
+            freq_to_human_readable(freq)
+            for freq in FREQUENCIES
+        ],
+        value=value,
+        description=f'Group {target} by:',
+        disabled=False,
+        continuous_update=True,
+        orientation='horizontal',
+        readout=True
+    )
+
+
+def _normalize_y(traces):
+    y_upper = max([
+        max(trace.y)
+        for trace in traces
+    ])
+    return y_upper
 
 
 def plot(traces):
-    if type(traces) == list:
+    if isinstance(traces, list):
         all_y = []
         for trace in traces:
             all_y.extend(trace.y)
@@ -21,76 +61,62 @@ def plot(traces):
     fig.show()
 
 
-def plot_with_slider(traces, show=True):
-    if 'releases' in traces.keys():
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
+def plot_with_slider(traces_packs_dict, show=True):
+    if 'releases' in traces_packs_dict.keys():
+        layout = go.Layout(
+            yaxis=dict(
+                zeroline=True,
+                showline=True
+            ),
+            yaxis2=dict(
+                zeroline=True,
+                showline=True,
+                overlaying='y',
+                side='right'
+            )
+        )
+        # fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig = go.FigureWidget(layout=layout)
     else:
-        '''
-        y_upper = max([
-            max(trace.y)
-            for trace in traces
-        ])
-        fig = go.Figure(layout_yaxis_range=[0, y_upper + 10])
-        '''
+        # norm_y = _normalize_y(traces_packs)
+        # fig = go.FigureWidget(layout_yaxis_range=[0, norm_y + 10])
         fig = go.FigureWidget()
 
-    for target, traces_pack in traces.items():
-        traces_pack[
-            START_FREQUENCIES_INDICES[target]
-        ].visible = True
+    traces_packs_count = len(traces_packs_dict)
+    sliders = []
+    for i, pair in enumerate(traces_packs_dict.items()):
+        target, traces_pack = pair
+
+        target_default_plot_index = DEFAULT_FREQUENCIES_INDICES[target]
+        traces_pack[target_default_plot_index].visible = True
+        '''
         if target == 'releases':
             for trace in traces_pack:
                 fig.add_trace(trace, secondary_y='True')
         else:
             fig.add_traces(traces_pack)
+        '''
+        fig.add_traces(traces_pack)
 
-    firstSlider = widgets.SelectionSlider(
-        options=[
-            freq_to_human_readable(freq)
-            for freq in FREQUENCIES
-        ],
-        value='2 weeks',
-        description='Group by:',
-        disabled=False,
-        continuous_update=True,
-        orientation='horizontal',
-        readout=True
-    )
-    '''
-    traces_packs_steps = []
-    for traces_pack in traces.values():
-        steps = [
-            dict(
-                method="update",
-                args=[
-                    {"visible": [False] * len(traces_pack)},
-                    {"title": "Slider switched to step: " + freq_to_human_readable(freq)}
-                ],
-            )  # layout attribute
-            for trace, freq in zip(traces_pack, FREQUENCIES)
-        ]
-
-        for i, step in enumerate(steps):
-            step['args'][0]['visible'][i] = True
-        traces_packs_steps.append(steps)
-
-    sliders = [
-        dict(
-            active=START_FREQUENCIES_INDICES[target],
-            currentvalue={"prefix": "Frequency: "},
-            pad={'t': 20 * (i + 1)},
-            steps=traces_packs_steps[i],
-        ) for i, target in enumerate(traces.keys())
-    ]
-    fig.update_layout(
-        sliders=sliders
-    )
-    '''
+        sliders.append(
+            _create_grouping_slider(
+                value=freq_to_human_readable(
+                    DEFAULT_FREQUENCIES[target]
+                ),
+                target=target
+            )
+        )
+        switch_trace = partial(_switch_trace, fig, i, traces_packs_count)
+        sliders[-1].observe(switch_trace, 'value')
 
     if show:
         fig.show(config={'scrollZoom': True})
     else:
-        return fig, firstSlider
+        '''
+        for slider in sliders:
+            slider.observe(switch_trace, 'value')
+        '''
+        return fig, sliders
 
 
 def o_issues(issues_df: pd.DataFrame):
@@ -178,7 +204,7 @@ def issues_c_dt(issues_df: pd.DataFrame):
     )
 
 
-def commits(com_rel_df: pd.DataFrame, by=None, for_sliders=False):
+def commits(com_rel_df: pd.DataFrame, by=None, yaxis=None, for_sliders=False):
     # TODO: What is better, own return for each case or one return in the end.
     if by is None:
         # Without grouping
@@ -186,7 +212,7 @@ def commits(com_rel_df: pd.DataFrame, by=None, for_sliders=False):
             traces = []
             for freq in tqdm(FREQUENCIES, desc='Preparing plots...'):
                 traces.append(
-                    target_grouped_by('commits', com_rel_df, freq, False)
+                    target_grouped_by('commits', com_rel_df, freq, yaxis, False)
                 )
             return traces
         else:
@@ -200,6 +226,7 @@ def commits(com_rel_df: pd.DataFrame, by=None, for_sliders=False):
                 name='commits',
                 x=commits_datetimes,
                 y=[1.] * len(com_rel_df['commits']),
+                yaxis=yaxis,
                 mode='markers',
                 marker_color='rgb(0, 190, 255)',
                 marker_line_width=2,
@@ -209,14 +236,14 @@ def commits(com_rel_df: pd.DataFrame, by=None, for_sliders=False):
         return target_grouped_by(com_rel_df, com_rel_df, by)
 
 
-def releases(com_rel_df: pd.DataFrame, by=None, for_sliders=False):
+def releases(com_rel_df: pd.DataFrame, by=None, yaxis=None, for_sliders=False):
     if by is None:
         # Without grouping
         if for_sliders:
             traces = []
             for freq in tqdm(FREQUENCIES, desc='Preparing plots...'):
                 traces.append(
-                    target_grouped_by('releases', com_rel_df, freq, False)
+                    target_grouped_by('releases', com_rel_df, freq, yaxis, False)
                 )
             return traces
         else:
@@ -230,6 +257,7 @@ def releases(com_rel_df: pd.DataFrame, by=None, for_sliders=False):
                 name='releases',
                 x=releases_datetimes,
                 y=[3] * len(com_rel_df['releases']),
+                yaxis=yaxis,
                 mode='markers',
                 marker_color='rgb(225, 0, 255)',
                 marker_line_width=2,
@@ -239,7 +267,7 @@ def releases(com_rel_df: pd.DataFrame, by=None, for_sliders=False):
         return target_grouped_by('releases', com_rel_df, by)
 
 
-def target_grouped_by(target, com_rel_df: pd.DataFrame, by: str, visible=True):
+def target_grouped_by(target, com_rel_df: pd.DataFrame, by: str, yaxis=None, visible=True):
     commits_count = com_rel_df[target].groupby(
         pd.Grouper(freq=by)
     ).sum()
@@ -252,6 +280,7 @@ def target_grouped_by(target, com_rel_df: pd.DataFrame, by: str, visible=True):
         visible=visible,
         x=commits_count.index,
         y=commits_count,
+        yaxis=yaxis
     )
 
 

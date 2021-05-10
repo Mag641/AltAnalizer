@@ -38,14 +38,14 @@ FREQUENCIES_HUMAN = {
     'Q': 'quarters',
 }
 
-START_FREQUENCIES = {
+DEFAULT_FREQUENCIES = {
     'commits': '2W',
     'issues_opens': 'W',
     'issues_closes': 'W',
     'releases': '3M'
 }
 
-START_FREQUENCIES_INDICES = {
+DEFAULT_FREQUENCIES_INDICES = {
     key: FREQUENCIES.index(value)
-    for key, value in START_FREQUENCIES.items()
+    for key, value in DEFAULT_FREQUENCIES.items()
 }

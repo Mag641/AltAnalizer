@@ -11,6 +11,8 @@ def main():
     org = 'klaytn'
     repo = 'klaytn'
 
+    # TODO: Class RepoHistory
+    # TODO: Calculated properties-flags "valid" "dir_exists" ...
     com_rel_df, issues_df = utils.read_all_history_from_files(org, repo)
     if com_rel_df is None or issues_df is None:
         history = repo_parsing.get_all(org, repo)
