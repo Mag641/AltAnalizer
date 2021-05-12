@@ -3,6 +3,8 @@ import os
 import plots
 import repo_parsing
 import utils
+from IPython.display import display
+import ipywidgets as widgets
 
 
 def main():
@@ -11,33 +13,22 @@ def main():
     org = 'klaytn'
     repo = 'klaytn'
 
-    # TODO: Class RepoHistory
-    # TODO: Calculated properties-flags "valid" "dir_exists" ...
     com_rel_df, issues_df = utils.read_all_history_from_files(org, repo)
     if com_rel_df is None or issues_df is None:
         history = repo_parsing.get_all(org, repo)
         utils.write_all_history_to_files(org, repo, history)
         com_rel_df, issues_df = utils.read_all_history_from_files(org, repo)
 
-    '''
-    plots.plot([
-        *plots.oc_issues(issues_df),
-        plots.releases(com_rel_df),
-        plots.commits(com_rel_df)
-    ])
-    '''
-    '''
-    plots.plot(
-        plots.commits(com_rel_df, 'M')
-    )
-    '''
-    plots.plot_with_slider(
-        {'commits': plots.commits(com_rel_df, for_sliders=True)},
-    )
+    fig, sliders = plots.plot_with_slider({
+        'commits': plots.commits(com_rel_df, for_sliders=True),
+        'releases': plots.releases(com_rel_df, yaxis='y2', for_sliders=True),
+    }, org, repo, show=False)
 
-    def change(obj, arg):
-        print('CHANGE\nCHANGE\nCHANGE\n')
-        print(obj, arg)
+    output = widgets.Output()
+    display(output)
+    controls = widgets.VBox(sliders)
+    with output:
+        display(controls, fig)
 
 
 if __name__ == '__main__':

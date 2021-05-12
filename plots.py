@@ -3,7 +3,6 @@ from functools import partial
 import ipywidgets as widgets
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from tqdm import tqdm
 
 from constants import FREQUENCIES, DEFAULT_FREQUENCIES, DEFAULT_FREQUENCIES_INDICES
@@ -39,7 +38,7 @@ def _create_grouping_slider(value, target):
     )
 
 
-def _normalize_y(traces):
+def _calc_y_upper(traces):
     y_upper = max([
         max(trace.y)
         for trace in traces
@@ -49,10 +48,7 @@ def _normalize_y(traces):
 
 def plot(traces):
     if isinstance(traces, list):
-        all_y = []
-        for trace in traces:
-            all_y.extend(trace.y)
-        y_upper = max(all_y)
+        y_upper = _calc_y_upper(traces)
     else:
         y_upper = max(traces.y)
 
@@ -61,7 +57,7 @@ def plot(traces):
     fig.show()
 
 
-def plot_with_slider(traces_packs_dict, show=True):
+def plot_with_slider(traces_packs_dict, org: str, repo: str, show=True):
     if 'releases' in traces_packs_dict.keys():
         layout = go.Layout(
             yaxis=dict(
@@ -75,11 +71,9 @@ def plot_with_slider(traces_packs_dict, show=True):
                 side='right'
             )
         )
-        # fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig = go.FigureWidget(layout=layout)
+        fig.layout.yaxis2.title = 'releases number'
     else:
-        # norm_y = _normalize_y(traces_packs)
-        # fig = go.FigureWidget(layout_yaxis_range=[0, norm_y + 10])
         fig = go.FigureWidget()
 
     traces_packs_count = len(traces_packs_dict)
@@ -89,13 +83,6 @@ def plot_with_slider(traces_packs_dict, show=True):
 
         target_default_plot_index = DEFAULT_FREQUENCIES_INDICES[target]
         traces_pack[target_default_plot_index].visible = True
-        '''
-        if target == 'releases':
-            for trace in traces_pack:
-                fig.add_trace(trace, secondary_y='True')
-        else:
-            fig.add_traces(traces_pack)
-        '''
         fig.add_traces(traces_pack)
 
         sliders.append(
@@ -109,13 +96,14 @@ def plot_with_slider(traces_packs_dict, show=True):
         switch_trace = partial(_switch_trace, fig, i, traces_packs_count)
         sliders[-1].observe(switch_trace, 'value')
 
+    fig.layout.title = f'{org}/{repo} history'
     if show:
-        fig.show(config={'scrollZoom': True})
+        fig.show(config={
+            'scrollZoom': True,
+            'displaylogo': False,
+            'displayModeBar': True,
+        })
     else:
-        '''
-        for slider in sliders:
-            slider.observe(switch_trace, 'value')
-        '''
         return fig, sliders
 
 
